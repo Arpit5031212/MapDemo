@@ -24,10 +24,12 @@ export class MapComponentComponent implements OnInit {
     const map = L.map('map').setView([0, 0], 2);
 
     this.setBasemapLayer(map);
+    this.setFeatureLayer(map);
+
 
     this.regionSelected.subscribe({
       next: (reg: string) => {
-        
+
         // removing the color feature layer if present before adding a new one.
         if (this.colorFeatureLayer) {
           map.removeLayer(this.colorFeatureLayer);
@@ -41,6 +43,8 @@ export class MapComponentComponent implements OnInit {
     })
   }
 
+ 
+
   // sets the basemap layer
   setBasemapLayer(map: L.Map) {
     const layer = Vector.vectorTileLayer(this.basemapUrl, {
@@ -51,6 +55,37 @@ export class MapComponentComponent implements OnInit {
     layer.addTo(map);
   };
 
+  setFeatureLayer(map: L.Map) {
+    const featureLayer = esri.featureLayer({
+      url: this.featureUrl,
+      style: function (feature) {
+        var gradingStyle = {
+          weight: 0.4,
+          opacity: 0.5,
+          fillOpacity: 0.4,
+          color: 'grey'
+        };
+        return gradingStyle;
+      }
+    })
+    featureLayer.addTo(map);
+    
+    // bind popup to the layer on hover event
+    featureLayer.bindPopup("", { minWidth: 100, closeButton: true });
+    featureLayer.on("mouseover", function(e) {
+
+      // setting up popup content
+      const popupContent = `${e.layer?.feature?.properties?.countryname} (${e.layer?.feature?.properties?.region})`;
+      featureLayer.setPopupContent(popupContent);
+      featureLayer.openPopup(e.latlng); // open popup
+    })
+
+    // close popup when moved out of the country.
+    featureLayer.on('mouseout', function() {
+      featureLayer.closePopup();
+    })
+  }
+
   // emits the value of dropdown 
   onOptionSelect(event: any) {
     this.regionSelected.next(event.target.value);
@@ -59,7 +94,7 @@ export class MapComponentComponent implements OnInit {
   // Show the region selected from dropdown.
   //manually setting the view for regions
   showSelectedRegion(region: string, map: L.Map) {
-    
+
     let center;
     let zoomLevel;
 
