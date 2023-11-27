@@ -101,6 +101,7 @@ export class MapComponentComponent implements OnInit {
     // setting the zoom level and center point for regions.
     switch (region) {
       case 'SEARO':
+        console.log(1);
         center = [15.11989876, 101.01490782];
         zoomLevel = 3.5;
         break;

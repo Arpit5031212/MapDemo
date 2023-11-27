@@ -4,11 +4,13 @@ import { BrowserModule } from '@angular/platform-browser';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { MapComponentComponent } from './map-component/map-component.component';
+import { FeatureLayerComponent } from './feature-layer/feature-layer.component';
 
 @NgModule({
   declarations: [
     AppComponent,
-    MapComponentComponent
+    MapComponentComponent,
+    FeatureLayerComponent,
   ],
   imports: [
     BrowserModule,
