@@ -9,6 +9,8 @@ import SimpleFillSymbol from "@arcgis/core/symbols/SimpleFillSymbol.js";
 import SimpleRenderer from "@arcgis/core/renderers/SimpleRenderer.js";
 import PopupTemplate from '@arcgis/core/PopupTemplate';
 import Fullscreen from '@arcgis/core/widgets/Fullscreen';
+import Extent from "@arcgis/core/geometry/Extent.js";
+import SpatialReference from "@arcgis/core/geometry/SpatialReference.js";
 
 
 
@@ -60,7 +62,7 @@ export class FeatureLayerComponent implements OnInit {
       iso3code: "DEU",
       score: 5
     }
-    
+
   ]
 
   view!: MapView;
@@ -82,20 +84,23 @@ export class FeatureLayerComponent implements OnInit {
         width: 0.4,
       },
     });
-  
+
     const newUniqueValueRenderer = new UniqueValueRenderer({
       field: 'WHO_CODE',
       defaultSymbol: defaultSymbolForBaseMap,
       defaultLabel: 'WHO_CODE',
     });
     const mapBaseLayer = new VectorTileLayer({
-			url: this.basemapUrl
-		});
+      url: this.basemapUrl,
+    });
 
-		// Create a Basemap with the VectorTileLayer
-		const customBasemap = new Basemap({
-			baseLayers: [mapBaseLayer],
-		});
+
+
+
+    // Create a Basemap with the VectorTileLayer
+    const customBasemap = new Basemap({
+      baseLayers: [mapBaseLayer],
+    });
 
     const featureLayer = new FeatureLayer({
       url: this.featureUrl,
@@ -104,13 +109,13 @@ export class FeatureLayerComponent implements OnInit {
           color: 'rgba(0,76,115,0.04)'
         })
       }),
-      
+
       popupTemplate: new PopupTemplate({
-        		title: '{ADM0_VIZ_NAME}',
-        		overwriteActions: true,
-        		content: [],
-        		outFields: ['WHO_CODE'],
-        	}),
+        title: '{ADM0_VIZ_NAME}',
+        overwriteActions: true,
+        content: [],
+        outFields: ['WHO_CODE'],
+      }),
     })
 
     const map = new Map({
@@ -122,33 +127,50 @@ export class FeatureLayerComponent implements OnInit {
     const view = new MapView({
       container: "map",
       map: map,
-      zoom: 2
+      zoom: 2,
+      
     });
 
-    view.on("click", function(e) {
-      console.log(e)
+    view.watch("extent", function (newValue, extent) {
+      // Define the maximum bounds
+      var xmin = -18785164.07136002;
+      var ymin = -1.5028131257198907E7;
+      var xmax = 21133308.942468934;
+      var ymax = 2.0037508342787E7;
+
+      // Check if the new extent is beyond the maximum bounds
+      if (
+        newValue.xmin < xmin ||
+        newValue.xmax > xmax ||
+        newValue.ymin < ymin ||
+        newValue.ymax > ymax
+      ) {
+        // Adjust the extent to stay within bounds
+        view.extent = extent;
+      }
     })
+
 
     this.data.forEach((country) => {
       newUniqueValueRenderer.addUniqueValueInfo(
         country.iso3code,
-        new SimpleFillSymbol({ color : this.getColor(country.score) })
+        new SimpleFillSymbol({ color: this.getColor(country.score) })
       )
     })
 
     featureLayer.renderer = newUniqueValueRenderer;
 
     let fullscreen = new Fullscreen({
-			view: this.view,
-		});
-		this.view.ui.add(fullscreen, 'bottom-right');
+      view: this.view,
+    });
+    this.view.ui.add(fullscreen, 'bottom-right');
 
-		return this.view.when();
+    return this.view.when();
 
   }
 
   getColor(score: number): string {
-    switch(score) {
+    switch (score) {
       case 1: return "#ff0000";
       case 2: return "#ffcc00";
       case 3: return "#ffcc00";
