@@ -5,6 +5,11 @@
     width: 100%;
 }
 
+.esri-view-surface {
+    max-width: 1024px !important;
+    max-height: 532px !important;
+}
+
 #map {
     height: 100vh;
     width: 100vw;

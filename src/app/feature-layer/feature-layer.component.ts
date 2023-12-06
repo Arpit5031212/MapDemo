@@ -9,9 +9,7 @@ import SimpleFillSymbol from "@arcgis/core/symbols/SimpleFillSymbol.js";
 import SimpleRenderer from "@arcgis/core/renderers/SimpleRenderer.js";
 import PopupTemplate from '@arcgis/core/PopupTemplate';
 import Fullscreen from '@arcgis/core/widgets/Fullscreen';
-import Extent from "@arcgis/core/geometry/Extent.js";
-import SpatialReference from "@arcgis/core/geometry/SpatialReference.js";
-
+import * as L from 'leaflet';
 
 
 @Component({
@@ -72,7 +70,23 @@ export class FeatureLayerComponent implements OnInit {
   featureUrl: string = "https://services.arcgis.com/5T5nSi527N4F7luB/ArcGIS/rest/services/Detailed_Boundary_ADM0/FeatureServer/0/"
 
   ngOnInit() {
+    var maxScreenDimension = window.innerHeight > window.innerWidth ? window.innerHeight : window.innerWidth;
+    // assuming tiles are 256 x 256
+    var tileSize = 512;
+    // Here the function used is the floor because world repeat not needed
+    // Use Math.ceil if needed world repeat in future.
+    var maxTiles = Math.floor(maxScreenDimension / tileSize);
+
+    // Here the function used is the ceil because world repeat not needed
+    // Use Math.floor if needed world repeat in future.
+    var minZoom = Math.ceil(Math.log(maxTiles) / Math.log(2));
+    minZoom = minZoom - 0.7
+
+    // only let minZoom be 2 or higher
+    minZoom = minZoom < 2 ? 2 : minZoom;
+    var bounds = [[90, 180], [-90, -180]];
     this.initializeMap().then(() => { });
+
   }
 
   initializeMap(): Promise<any> {
@@ -92,6 +106,7 @@ export class FeatureLayerComponent implements OnInit {
     });
     const mapBaseLayer = new VectorTileLayer({
       url: this.basemapUrl,
+
     });
 
 
@@ -120,35 +135,36 @@ export class FeatureLayerComponent implements OnInit {
 
     const map = new Map({
       basemap: customBasemap,
-      layers: [featureLayer]
+      layers: [featureLayer],
+
     });
 
+    
+
     // Create a MapView instance (for 2D viewing) and reference the map instance
+
     const view = new MapView({
       container: "map",
       map: map,
-      zoom: 2,
-      
+      zoom: 1,
+      constraints: {
+        minZoom: 1,
+        
+      },
+
     });
 
-    view.watch("extent", function (newValue, extent) {
-      // Define the maximum bounds
-      var xmin = -18785164.07136002;
-      var ymin = -1.5028131257198907E7;
-      var xmax = 21133308.942468934;
-      var ymax = 2.0037508342787E7;
+    view.watch("extent", function() {
 
-      // Check if the new extent is beyond the maximum bounds
-      if (
-        newValue.xmin < xmin ||
-        newValue.xmax > xmax ||
-        newValue.ymin < ymin ||
-        newValue.ymax > ymax
-      ) {
-        // Adjust the extent to stay within bounds
-        view.extent = extent;
-      }
     })
+
+    // view.on("click", function(e) {
+    //   console.log(e);
+    // });
+
+    // view.watch("zoom", function (e) {
+    //   console.log(e);
+    // })
 
 
     this.data.forEach((country) => {
@@ -179,5 +195,7 @@ export class FeatureLayerComponent implements OnInit {
       default: return "#004c730a";
     }
   }
+
+
 
 }

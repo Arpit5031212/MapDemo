@@ -10,9 +10,10 @@ import { Subject } from 'rxjs';
   styleUrls: ['./map-component.component.scss']
 })
 export class MapComponentComponent implements OnInit {
+ 
 
   basemapUrl = 'https://tiles.arcgis.com/tiles/5T5nSi527N4F7luB/arcgis/rest/services/WHO_Polygon_Basemap_Dark_Grey/VectorTileServer';
-  featureUrl = 'https://services.arcgis.com/5T5nSi527N4F7luB/arcgis/rest/services/DASH_PUBLIC_INCIDENTS/FeatureServer/0';
+  featureUrl: string = "https://services.arcgis.com/5T5nSi527N4F7luB/ArcGIS/rest/services/Detailed_Boundary_ADM0/FeatureServer/0/"
 
   regionSelected = new Subject<string>();
 
@@ -20,8 +21,14 @@ export class MapComponentComponent implements OnInit {
   colorFeatureLayer: esri.FeatureLayer | null = null;
 
   ngOnInit(): void {
+    const boundsAndMinzoom = this.getBoundsAndMinzoom();
 
-    const map = L.map('map').setView([0, 0], 2);
+    const map = L.map('map', {
+      zoom: boundsAndMinzoom.minZoom,       
+      maxBounds: boundsAndMinzoom.bounds,   // setting bounds for map view
+      maxBoundsViscosity: 1,
+      minZoom: boundsAndMinzoom.minZoom,    // minimum zoom level
+    }).setView([0, 0], 2);
 
     this.setBasemapLayer(map);
     this.setFeatureLayer(map);
@@ -35,7 +42,6 @@ export class MapComponentComponent implements OnInit {
           map.removeLayer(this.colorFeatureLayer);
         }
         this.showSelectedRegion(reg, map);
-        console.log(reg);
       },
       error: (err: Error) => {
         console.log(err);
@@ -43,10 +49,11 @@ export class MapComponentComponent implements OnInit {
     })
   }
 
- 
+
 
   // sets the basemap layer
   setBasemapLayer(map: L.Map) {
+
     const layer = Vector.vectorTileLayer(this.basemapUrl, {
       minZoom: 1,
       maxZoom: 13,
@@ -69,19 +76,19 @@ export class MapComponentComponent implements OnInit {
       }
     })
     featureLayer.addTo(map);
-    
+
     // bind popup to the layer on hover event
     featureLayer.bindPopup("", { minWidth: 100, closeButton: true });
-    featureLayer.on("mouseover", function(e) {
+    featureLayer.on("mouseover", function (e) {
 
       // setting up popup content
-      const popupContent = `${e.layer?.feature?.properties?.countryname} (${e.layer?.feature?.properties?.region})`;
+      const popupContent = `${e.layer?.feature?.properties?.ADM0_NAME} (${e.layer?.feature?.properties?.WHO_REGION})`;
       featureLayer.setPopupContent(popupContent);
       featureLayer.openPopup(e.latlng); // open popup
     })
 
     // close popup when moved out of the country.
-    featureLayer.on('mouseout', function() {
+    featureLayer.on('mouseout', function () {
       featureLayer.closePopup();
     })
   }
@@ -101,9 +108,8 @@ export class MapComponentComponent implements OnInit {
     // setting the zoom level and center point for regions.
     switch (region) {
       case 'SEARO':
-        console.log(1);
         center = [15.11989876, 101.01490782];
-        zoomLevel = 3.5;
+        zoomLevel = 4;
         break;
       case 'AFRO':
         center = [2.4601811810210052, 22.851562500000004];
@@ -147,8 +153,8 @@ export class MapComponentComponent implements OnInit {
           fillOpacity: 0.55,
           color: 'grey'
         };
-        if (feature.properties.region === region) {
-          switch (feature.properties.region) {
+        if (feature.properties.WHO_REGION === region) {
+          switch (feature.properties.WHO_REGION) {
             case 'SEARO': gradingStyle.color = 'orange'; break;
             case 'AFRO': gradingStyle.color = 'green'; break;
             case 'AMRO': gradingStyle.color = 'blue'; break;
@@ -163,5 +169,27 @@ export class MapComponentComponent implements OnInit {
     })
     this.colorFeatureLayer.addTo(map)
 
+  }
+
+  // gets the minimum zoom level and bounds according to screen resolution.
+  getBoundsAndMinzoom(): { minZoom: number, bounds: L.LatLngTuple[] } {
+    const maxScreenDimension = window.innerHeight > window.innerWidth ? window.innerHeight : window.innerWidth;
+    // assuming tiles are 512 x 512
+    const tileSize = 512;
+    // Here the function used is the floor because world repeat not needed
+    // Use Math.ceil if needed world repeat in future.
+    const maxTiles = Math.floor(maxScreenDimension / tileSize);
+
+    // Here the function used is the ceil because world repeat not needed
+    // Use Math.floor if needed world repeat in future.
+    let minZoom = Math.ceil(Math.log(maxTiles) / Math.log(2));
+    console.log(maxTiles, minZoom, Math.log(maxTiles), Math.log(2));
+    minZoom = minZoom - 0.7
+
+    // only let minZoom be 2 or higher
+    minZoom = minZoom < 2 ? 2 : minZoom;
+    const bounds = [[90, 180] as L.LatLngTuple, [-90, -180] as L.LatLngTuple];
+
+    return { minZoom, bounds }
   }
 }
